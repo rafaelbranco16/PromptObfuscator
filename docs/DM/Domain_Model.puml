@@ -1,0 +1,27 @@
+@startuml
+
+class Request {}
+
+class ObfuscationRequest {
+    List<String> Keywords
+}
+
+class RequestId {
+ - id
+}
+class Prompt {
+    - prompt
+}
+
+class Pii {
+    - id
+    - content
+}
+
+Prompt "1" - "1..*" Pii : contains >
+Request "1" - "1" Prompt : has >
+
+RequestId <-d- Request
+
+ObfuscationRequest --|> Request
+@enduml
