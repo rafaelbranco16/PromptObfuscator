@@ -92,7 +92,7 @@ public class OvershadowingService implements IOvershadowingService {
 
             return this.modelService.generate(prompt, p);
         }catch (RuntimeException e) {
-            throw new LLMRequestException("We couldnt reach the LM. Try again in 5 minutes.");
+            throw new LLMRequestException(e.getMessage());
         }
     }
 
