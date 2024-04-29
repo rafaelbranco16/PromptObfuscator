@@ -24,6 +24,6 @@ hs_err_pid*
 replay_pid*
 
 target
-*.env
+.env
 
 .idea
