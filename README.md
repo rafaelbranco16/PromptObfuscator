@@ -1,8 +1,11 @@
-# overshadowing
+# Prompt Obefuscator
 
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
+PromptObfuscator is a solution to one of the problems associated with sending personal data in a prompt. 
+The aim is for the personal data that is sent to be obfuscated and not sent to the models.
 
-If you want to learn more about Quarkus, please visit its website: https://quarkus.io/ .
+
+# Wiki
+
 
 ## Running the application in dev mode
 
@@ -44,13 +47,3 @@ Or, if you don't have GraalVM installed, you can run the native executable build
 ```
 
 You can then execute your native executable with: `./target/overshadowing-1.0.0-SNAPSHOT-runner`
-
-If you want to learn more about building native executables, please consult https://quarkus.io/guides/maven-tooling.
-
-## Provided Code
-
-### RESTEasy Reactive
-
-Easily start your Reactive RESTful Web Services
-
-[Related guide section...](https://quarkus.io/guides/getting-started-reactive#reactive-jax-rs-resources)
