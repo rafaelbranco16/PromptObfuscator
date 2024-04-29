@@ -1,4 +1,4 @@
-package prompt.overshadowing.model.langfuse;
+package langfuse.sdk.model;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import lombok.Getter;
@@ -7,6 +7,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * This class behaves like the JSON on the
+ * <a href=https://api.reference.langfuse.com/#post-/api/public/prompts>API Documentation</a>
+ */
 @Getter
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
 public class ChatPrompt {

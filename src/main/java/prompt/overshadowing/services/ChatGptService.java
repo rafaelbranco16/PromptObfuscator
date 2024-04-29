@@ -5,12 +5,16 @@ import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
+import dev.langchain4j.model.output.Response;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import langfuse.sdk.model.Batch;
+import langfuse.sdk.model.ChatPrompt;
+import langfuse.sdk.model.Generation;
+import langfuse.sdk.service.LangFuseService;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import prompt.overshadowing.exceptions.LLMRequestException;
-import prompt.overshadowing.model.langfuse.*;
 import prompt.overshadowing.services.interfaces.ILLMLoggingService;
 import prompt.overshadowing.services.interfaces.ILlmModelService;
 import prompt.overshadowing.utils.Utils;
@@ -24,12 +28,13 @@ public class ChatGptService implements ILlmModelService {
     @RestClient
     ILLMLoggingService loggingService;
 
+    @Inject
+    LangFuseService fuseService;
+
     @ConfigProperty(name = "langfuse.public.key")
     String username;
     @ConfigProperty(name = "langfuse.secret.key")
     String password;
-    @ConfigProperty(name = "prompt.generator.trace.name")
-    String generationTextName;
 
     @Override
     public ChatLanguageModel buildModel() {
@@ -63,50 +68,22 @@ public class ChatGptService implements ILlmModelService {
     public String generate(String sysMessage, String userMessage) throws LLMRequestException {
         SystemMessage sysMessageObj = new SystemMessage(sysMessage);
         UserMessage userMessageObj = new UserMessage(userMessage);
-        AiMessage response = this.buildModel().generate(List.of(sysMessageObj, userMessageObj)).content();
-        Batch b = createTrace(sysMessageObj, userMessageObj, response);
-        ChatPrompt chatPrompt = this.createChatPrompt(sysMessageObj, userMessageObj, response);
-
+        Response<AiMessage> response = this.buildModel().generate(List.of(sysMessageObj, userMessageObj));
+        Batch trace = fuseService.createTrace(List.of(sysMessageObj, userMessageObj), response, "v1", "v1",
+                "test",null, List.of(), true, null);
+        ChatPrompt chatPrompt = fuseService.createChatPrompt(List.of(sysMessageObj, userMessageObj, response.content()));
+        Batch gen = fuseService.createGeneration(sysMessageObj, userMessageObj,response, chatPrompt.getName(),
+                trace.batch.get(0).getId());
         this.loggingService.sendPrompt(this.buildHeaderAuthorization(), chatPrompt);
-        this.loggingService.sendBatch(buildHeaderAuthorization(), b);
-        return response.text();
-    }
+        this.loggingService.sendBatch(buildHeaderAuthorization(), trace);
+        this.loggingService.sendBatch(buildHeaderAuthorization(), gen);
 
-    private Batch createTrace(SystemMessage sysMessage, UserMessage userMessage, AiMessage aiMessage) {
-        IngestionBody body = new Trace(
-                generationTextName,
-                Utils.getProperty("langfuse.user.id"),
-                sysMessage.text() + "\n" + userMessage.text(),
-                aiMessage.text(),
-                "sesId",
-                "release",
-                "v1",
-                "",
-                List.of("string"),
-                false
-        );
-        Ingestion ingestion = new Ingestion(
-                "trace-create",
-                "",
-                body
-
-        );
-        Batch b = new Batch();
-        b.addIngestion(ingestion);
-        return b;
+        return response.content().text();
     }
 
     private String buildHeaderAuthorization() {
         String credentials = username + ":" + password;
         String encodedCredentials = Base64.getEncoder().encodeToString(credentials.getBytes());
         return "Basic " + encodedCredentials;
-    }
-
-    private ChatPrompt createChatPrompt(SystemMessage sysMessage, UserMessage userMessage, AiMessage aiMessage) {
-        ChatPrompt prompt = new ChatPrompt("");
-        prompt.addPrompt("System", sysMessage.text());
-        prompt.addPrompt("User", userMessage.text());
-        prompt.addPrompt("Ai", aiMessage.text());
-        return prompt;
     }
 }

@@ -1,13 +1,14 @@
-package prompt.overshadowing.model.langfuse;
+package langfuse.sdk.model;
 
 import lombok.Getter;
 import prompt.overshadowing.utils.Utils;
 
+import java.io.Serializable;
 import java.time.Instant;
 import java.util.Map;
 
 @Getter
-public class Generation {
+public class Generation implements IngestionBody {
     private final String traceId;
     private final String name;
     private final Instant startTime;
@@ -50,25 +51,5 @@ public class Generation {
         this.usage = usage;
         this.promptName = promptName;
         this.promptVersion = promptVersion;
-    }
-}
-
-@Getter
-class Usage {
-    private final int input;
-    private final int output;
-    private final int total;
-    private final String unit;
-    private final int inputCost;
-    private final int outputCost;
-    private final int totalCost;
-    public Usage(int input, int output, int total, String unit, int inputCost, int outputCost, int totalCost) {
-        this.input = input;
-        this.output = output;
-        this.total = total;
-        this.unit = unit;
-        this.inputCost = inputCost;
-        this.outputCost = outputCost;
-        this.totalCost = totalCost;
     }
 }
