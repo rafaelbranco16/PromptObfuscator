@@ -193,7 +193,7 @@ public class ObfuscationControllerTest {
             .setParam("http.socket.timeout", timeoutInMillis));
 
         IFileToPromptService srv = new PDFToPromptService();
-        String promptText = srv.convertToString("/Currículo.pdf");
+        String promptText = srv.convertToString("/Currículo2.pdf");
         System.out.println(promptText);
         ObfuscateRequestDTO dto = new ObfuscateRequestDTO(promptText,
                 List.of("name"));

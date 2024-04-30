@@ -8,9 +8,7 @@ import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.output.Response;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import langfuse.sdk.model.Batch;
-import langfuse.sdk.model.ChatPrompt;
-import langfuse.sdk.model.Generation;
+import langfuse.sdk.model.*;
 import langfuse.sdk.service.LangFuseService;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
@@ -21,6 +19,7 @@ import prompt.overshadowing.utils.Utils;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
+import java.util.Objects;
 
 @ApplicationScoped
 public class ChatGptService implements ILlmModelService {
@@ -31,32 +30,43 @@ public class ChatGptService implements ILlmModelService {
     @Inject
     LangFuseService fuseService;
 
+    //LangFuse integration properties
     @ConfigProperty(name = "langfuse.public.key")
     String username;
     @ConfigProperty(name = "langfuse.secret.key")
     String password;
 
+    //LLM Configurations from the properties
+    @ConfigProperty(name = "model.api.key")
+    String modelKey;
+    @ConfigProperty(name = "model.base.url")
+    String modelBaseUrl;
+    @ConfigProperty(name = "model.max.tokens")
+    int modelMaxTokens;
+    @ConfigProperty(name = "model.timeout")
+    int modelTimeout;
+    @ConfigProperty(name = "model.temperature")
+    double modelTemperature;
+    @ConfigProperty(name = "model.log.requests")
+    boolean logRequests;
+    @ConfigProperty(name = "model.log.responses")
+    boolean logResponses;
+    @ConfigProperty(name = "model.name")
+    String modelName;
+
     @Override
     public ChatLanguageModel buildModel() {
+        if(Objects.equals(modelBaseUrl, "null")) modelBaseUrl = null;
         return OpenAiChatModel.builder()
-                .baseUrl(buildUrlString())
-                .apiKey("not-needed")
-                .modelName("local-model")
-                .maxTokens(-1)
-                .timeout(Duration.ofMillis(100000))
-                .temperature(0.0)
-                .logRequests(true)
-                .logResponses(true)
+                .baseUrl(modelBaseUrl)
+                .apiKey(modelKey)
+                .modelName(modelName)
+                .maxTokens(modelMaxTokens)
+                .timeout(Duration.ofMillis(modelTimeout))
+                .temperature(modelTemperature)
+                .logRequests(logRequests)
+                .logResponses(logResponses)
                 .build();
-    }
-    /**
-     * Builds the URL String of the type
-     * Domain:port/url
-     * @return the URL string
-     */
-    private String buildUrlString() {
-        return Utils.getProperty("lm.domain") +
-                Utils.getProperty("lm.url");
     }
 
     /**
@@ -69,6 +79,8 @@ public class ChatGptService implements ILlmModelService {
         SystemMessage sysMessageObj = new SystemMessage(sysMessage);
         UserMessage userMessageObj = new UserMessage(userMessage);
         Response<AiMessage> response = this.buildModel().generate(List.of(sysMessageObj, userMessageObj));
+
+        /*
         Batch trace = fuseService.createTrace(List.of(sysMessageObj, userMessageObj), response, "v1", "v1",
                 "test",null, List.of(), true, null);
         ChatPrompt chatPrompt = fuseService.createChatPrompt(List.of(sysMessageObj, userMessageObj, response.content()));
@@ -77,6 +89,7 @@ public class ChatGptService implements ILlmModelService {
         this.loggingService.sendPrompt(this.buildHeaderAuthorization(), chatPrompt);
         this.loggingService.sendBatch(buildHeaderAuthorization(), trace);
         this.loggingService.sendBatch(buildHeaderAuthorization(), gen);
+        */
 
         return response.content().text();
     }
