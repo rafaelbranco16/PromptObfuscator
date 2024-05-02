@@ -57,10 +57,10 @@ public class OvershadowingService implements IOvershadowingService {
         List<Prompt> prompts = new ArrayList<>();
         String overshadowed;
         try {
-            List<TextSegment> segments = this.splitPrompt(dto.getPrompt());
+            List<TextSegment> segments = this.splitPrompt(req.getPrompt().getPrompt());
             for(TextSegment segment : segments) {
                 String llmMessage = this.getLlmResponse(segment.text(), req.getKeywords());
-                ObfuscationRequest r = RequestFabric.create(segment.text(), dto.getKeywords());
+                ObfuscationRequest r = RequestFabric.create(segment.text(), req.getKeywords());
 
                 if (llmMessage == null)
                     return new ResponseDTO(r.getId().getId(), 400, "Invalid response from Llm.");
@@ -75,7 +75,7 @@ public class OvershadowingService implements IOvershadowingService {
             return new ResponseDTO(req.getId().getId(), 400, e.getMessage());
         }catch (CircuitBreakerOpenException e) {
             return new ResponseDTO(req.getId().getId(), 400,
-                    "We couldn't reach the LM. Try again in 5 minutes.");
+                    "We couldnt reach the LM. Try again in 5 minutes.");
         }
         return new ResponseDTO(req.getId().getId(), 200, overshadowed);
     }
@@ -92,7 +92,7 @@ public class OvershadowingService implements IOvershadowingService {
 
             return this.modelService.generate(prompt, p);
         }catch (RuntimeException e) {
-            throw new LLMRequestException("We couldn't reach the LM. Try again in 5 minutes.");
+            throw new LLMRequestException(e.getMessage());
         }
     }
 
@@ -110,7 +110,9 @@ public class OvershadowingService implements IOvershadowingService {
         Map<String, Integer> overshadowingKeys = new HashMap<>();
         //Converting it to JSON, so it's easier to work with
         Prompt promptObj = Prompt.create(prompt);
-        ObjectMapper mapper = new ObjectMapper().configure(JsonParser.Feature.ALLOW_BACKSLASH_ESCAPING_ANY_CHARACTER, true); ;
+        ObjectMapper mapper = new ObjectMapper().configure(
+                JsonParser.Feature.ALLOW_BACKSLASH_ESCAPING_ANY_CHARACTER,
+                true);
         try {
             JsonNode piiArray = mapper.readTree(llmResponse);
             if(piiArray != null && piiArray.isArray()) {
@@ -169,9 +171,9 @@ public class OvershadowingService implements IOvershadowingService {
     }
 
     /**
-     * Desobfuscate a prompt
+     * Deobfuscate a prompt
      * @param dto the dto with the request
-     * @return the desobfuscated prompt
+     * @return the deobfuscated prompt
      */
     public ResponseDTO deobfuscate(DesovershadowRequestDTO dto) {
         Request req = RequestFabric.create(dto.getPrompt());
@@ -190,8 +192,22 @@ public class OvershadowingService implements IOvershadowingService {
         return new ResponseDTO(req.getId().getId(), 200, prompt.getPrompt());
     }
 
+    /**
+     * Splits the prompt into text segments
+     * @param doc the document to be created. This is not a literal document.
+     *            It can be a String. It has to be turned into a Document class,
+     *            so it can be split using the LangChain library in order to keep
+     *            some context.
+     * @return a List of TextSegments
+     * @throws InvalidSplitException if something's wrong happens
+     */
     public List<TextSegment> splitPrompt(String doc) throws InvalidSplitException{
-        Document docObj = new Document(doc);
+        Document docObj;
+        try {
+            docObj = new Document(doc);
+        }catch (IllegalArgumentException e) {
+            throw new InvalidSplitException(e.getMessage());
+        }
         int maxSegmentSize, maxOverlapSize;
 
         try {
@@ -220,12 +236,17 @@ public class OvershadowingService implements IOvershadowingService {
         }
     }
 
+    /**
+     * Connects all the segments into one
+     * @param segments the segments
+     * @return all the prompt
+     */
     private String connectPrompt(List<Prompt> segments) {
-        String s = new String();
+        String s = "";
         for (Prompt p : segments) {
             s += p.getPrompt();
         }
 
-        return s.toString();
+        return s;
     }
 }

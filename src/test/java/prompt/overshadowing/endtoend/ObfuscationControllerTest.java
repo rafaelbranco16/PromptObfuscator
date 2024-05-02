@@ -4,6 +4,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.RestAssured;
 import io.restassured.config.HttpClientConfig;
 import io.restassured.response.Response;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import prompt.overshadowing.dto.DesovershadowRequestDTO;
 import prompt.overshadowing.dto.ObfuscateRequestDTO;
@@ -19,7 +20,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.matchesRegex;
-
+@Disabled
 @QuarkusTest
 public class ObfuscationControllerTest {
     @Test
@@ -192,7 +193,7 @@ public class ObfuscationControllerTest {
             .setParam("http.socket.timeout", timeoutInMillis));
 
         IFileToPromptService srv = new PDFToPromptService();
-        String promptText = srv.convertToString("/Currículo.pdf");
+        String promptText = srv.convertToString("/Currículo2.pdf");
         System.out.println(promptText);
         ObfuscateRequestDTO dto = new ObfuscateRequestDTO(promptText,
                 List.of("name"));

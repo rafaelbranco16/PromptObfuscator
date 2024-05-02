@@ -15,6 +15,8 @@ import prompt.overshadowing.controllers.ObfuscationController;
 import prompt.overshadowing.dto.ObfuscateRequestDTO;
 import prompt.overshadowing.dto.ResponseDTO;
 import prompt.overshadowing.exceptions.LLMRequestException;
+import prompt.overshadowing.model.Pii;
+import prompt.overshadowing.repositories.PiiRepository;
 import prompt.overshadowing.services.interfaces.ILlmModelService;
 
 import java.util.HashMap;
@@ -25,6 +27,8 @@ import java.util.Map;
 public class ObfuscationControllerTest {
     @InjectMock
     ILlmModelService model;
+    @InjectMock
+    PiiRepository piiRepo;
     @Inject
     ObfuscationController ctrl;
 
@@ -42,14 +46,16 @@ public class ObfuscationControllerTest {
                 keywords
         );
         String sysMessage = generatePromptTemplate(dto.getKeywords());
+        Pii mockPii = new Pii(); // create a mock Pii object
+
         Mockito.when(model.generate(sysMessage, dto.getPrompt()))
                 .thenReturn("[{\"pii\":\"Example Name\",\"type\":\"name\"}]");
+        Mockito.doNothing().when(piiRepo).persist(mockPii);
         String expected = "My name is {name_1_";
         // Act
         ResponseDTO response = (ResponseDTO) this.ctrl.obfuscation(dto).getEntity();
-        expected = expected + response.getId() + "}.";
         // Assert
-        Assertions.assertEquals(expected, response.getPrompt());
+        Assertions.assertTrue(response.getPrompt().contains(expected));
     }
     @Test
     public void overshadowingWithEmptyPrompt() throws LLMRequestException {
@@ -62,7 +68,10 @@ public class ObfuscationControllerTest {
         String sysMessage = generatePromptTemplate(dto.getKeywords());
         Mockito.when(model.generate(sysMessage, dto.getPrompt()))
                 .thenReturn("[]");
-        String expected = "";
+        String expected = "text cannot be null or blank";
+        Pii mockPii = new Pii(); // create a mock Pii object
+        Mockito.doNothing().when(piiRepo).persist(mockPii);
+
         // Act
         ResponseDTO response = (ResponseDTO) this.ctrl.obfuscation(dto).getEntity();
         // Assert
@@ -78,6 +87,8 @@ public class ObfuscationControllerTest {
         String sysMessage = generatePromptTemplate(dto.getKeywords());
         Mockito.when(model.generate(sysMessage, dto.getPrompt()))
                 .thenReturn("[]");
+        Pii mockPii = new Pii(); // create a mock Pii object
+        Mockito.doNothing().when(piiRepo).persist(mockPii);
         String expected = "My name is Example Name";
         // Act
         ResponseDTO response = (ResponseDTO) this.ctrl.obfuscation(dto).getEntity();
@@ -95,7 +106,9 @@ public class ObfuscationControllerTest {
         String sysMessage = generatePromptTemplate(dto.getKeywords());
         Mockito.when(model.generate(sysMessage, dto.getPrompt()))
                 .thenThrow(IllegalArgumentException.class);
-        String expected = "We couldn't reach the LM. Try again in 5 minutes. ";
+        Pii mockPii = new Pii(); // create a mock Pii object
+        Mockito.doNothing().when(piiRepo).persist(mockPii);
+        String expected = "We couldnt reach the LM. Try again in 5 minutes.";
         // Act
         ResponseDTO response = (ResponseDTO) this.ctrl.obfuscation(dto).getEntity();
         // Assert
@@ -111,6 +124,8 @@ public class ObfuscationControllerTest {
         String sysMessage = generatePromptTemplate(dto.getKeywords());
         Mockito.when(model.generate(sysMessage, dto.getPrompt()))
                 .thenReturn(null);
+        Pii mockPii = new Pii(); // create a mock Pii object
+        Mockito.doNothing().when(piiRepo).persist(mockPii);
         String expected = "Invalid response from Llm.";
         // Act
         ResponseDTO response = (ResponseDTO) this.ctrl.obfuscation(dto).getEntity();

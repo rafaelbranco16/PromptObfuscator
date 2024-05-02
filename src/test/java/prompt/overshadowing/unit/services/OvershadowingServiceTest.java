@@ -41,7 +41,8 @@ public class OvershadowingServiceTest {
         Mockito
                 .when(llmService.generate(sysMessage, usrMessage))
                 .thenReturn("My name is {Name_1_"+reqId+"}. Im {Age_1_"+reqId+"} years.");
-
+        Pii mockPii = new Pii(); // create a mock Pii object
+        Mockito.doNothing().when(repo).persist(mockPii);
         // Act
         Prompt actual = service.overshadow(llmResponseTemplate, promptTemplate, reqId);
         // Assert
@@ -73,6 +74,8 @@ public class OvershadowingServiceTest {
             OvershadowingJsonParseException {
         // Arrange
         String prompt = "No pii in here!";
+        Pii mockPii = new Pii(); // create a mock Pii object
+        Mockito.doNothing().when(repo).persist(mockPii);
         // Act
         Prompt actual = service.overshadow(llmResponseTemplate, prompt, reqIdTemplate);
         // Assert
@@ -88,6 +91,8 @@ public class OvershadowingServiceTest {
             OvershadowingJsonParseException {
         // Arrange
         String llmResponse = "[]";
+        Pii mockPii = new Pii(); // create a mock Pii object
+        Mockito.doNothing().when(repo).persist(mockPii);
         // Act
         Prompt actual = service.overshadow(llmResponse, promptTemplate, reqIdTemplate);
         // Assert
@@ -113,6 +118,8 @@ public class OvershadowingServiceTest {
         String expected = "My name is {Name_1_"+reqIdTemplate+"}. Im {Age_1_"+reqIdTemplate+"} years. " +
                 "I work with {Name_2_"+reqIdTemplate+"}. Me, {Name_1_"+reqIdTemplate+"} " +
                 "have no problem in working with {Name_2_"+reqIdTemplate+"}";
+        Pii mockPii = new Pii(); // create a mock Pii object
+        Mockito.doNothing().when(repo).persist(mockPii);
         // Act
         Prompt actual = service.overshadow(llmResponse, promptWithRepeatedPii, reqIdTemplate);
         // Assert
