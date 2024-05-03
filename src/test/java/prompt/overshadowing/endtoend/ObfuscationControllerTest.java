@@ -4,6 +4,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.RestAssured;
 import io.restassured.config.HttpClientConfig;
 import io.restassured.response.Response;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import prompt.overshadowing.dto.DesovershadowRequestDTO;
@@ -217,5 +218,6 @@ public class ObfuscationControllerTest {
                 .extract()
                 .response();
         System.out.println(response.jsonPath().getString("prompt"));
+        Assertions.assertEquals(promptText, response.jsonPath().getString("prompt"));
     }
 }

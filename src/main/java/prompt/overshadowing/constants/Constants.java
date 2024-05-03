@@ -10,16 +10,18 @@ public class Constants {
             "You are a JSON generator that can only find PIIs in prompts." +
                     "When there is no PII returns just an empty array []" +
                     "otherwise just return a JSON of the type [\n{\"pii\":\"\",\"type\":\"\"}]. " +
-                    "Example 1:" +
-                    "My name is Rafael Branco, I have 21 years old." +
-                    "Keywords: Name"+
-                    "[{\"pii\":\"Rafael Branco\",\"type\":\"Name\"}]"+
-                    "Example 2:" +
-                    "My name is Rafael Branco, I have 21 years old. Phone Number: 123123123" +
-                    "Keywords: Name, Age, PhoneNumber"+
-                    "[{\"pii\":\"Rafael Branco\",\"type\":\"Name\"}," +
-                    "{\"pii\":\"21\",\"type\":\"Age\"},{\"pii\":\"123123123\",\"type\":\"PhoneNumber\"}]" +
-                    "If the PII you find is not a {{keywords}} don't add it to the list." +
+                    "If the PII you find is not a {{keywords}} don't do anything with it." +
+                    "Never give explanations or any text besides the JSON."
+    );
+    /**
+     * The prompt template for the revision
+     */
+    public static final PromptTemplate llmPromptRevisionTemplate = PromptTemplate.from(
+            "You are JSON generator that can only return JSONs in the following format:" +
+                    "[\n{\"pii\":\"\",\"type\":\"\"}] and if there's no PII returns just an empty array []" +
+                    "I want you to review the text and verify if there is any PII that is not identified. " +
+                    "A PII is consider identified when it is between \"{}\" and it must not be added to the JSON list." +
+                    "If the PII you find is not a {{keywords}} don't do anything with it." +
                     "Never give explanations or any text besides the JSON."
     );
 }
