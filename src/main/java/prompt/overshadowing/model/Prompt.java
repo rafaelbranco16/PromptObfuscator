@@ -66,4 +66,8 @@ public class Prompt {
 
         return matches;
     }
+
+    public void addPiisToList(List<Pii> pii) {
+        this.piis.addAll(pii);
+    }
 }
