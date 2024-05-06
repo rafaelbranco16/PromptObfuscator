@@ -160,6 +160,9 @@ public class OvershadowingService implements IOvershadowingService {
             typeNumber = 1;
             obfuscatedKeys.put(type, typeNumber);
         }
+        if(type.trim().isBlank() || type.trim().isEmpty()){
+            return;
+        }
         String stringToReplaceWith = "{" + type + "_" + typeNumber + "_" + requestId + "}";
         Pii p = piiRepo.findByContent(value);
         if (p == null){
