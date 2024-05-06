@@ -3,6 +3,7 @@ package prompt.overshadowing.integration.controller.service;
 import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
 import io.quarkus.test.InjectMock;
+import io.quarkus.test.Mock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;
@@ -18,15 +19,16 @@ import prompt.overshadowing.exceptions.LLMRequestException;
 import prompt.overshadowing.model.Pii;
 import prompt.overshadowing.repositories.PiiRepository;
 import prompt.overshadowing.services.interfaces.ILlmModelService;
+import prompt.overshadowing.services.interfaces.IPIIRevisionService;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @QuarkusTest
 public class ObfuscationControllerTest {
     @InjectMock
     ILlmModelService model;
+    @InjectMock
+    IPIIRevisionService piiRevisionService;
     @InjectMock
     PiiRepository piiRepo;
     @Inject
@@ -47,10 +49,13 @@ public class ObfuscationControllerTest {
         );
         String sysMessage = generatePromptTemplate(dto.getKeywords());
         Pii mockPii = new Pii(); // create a mock Pii object
-
+        String id = UUID.randomUUID().toString();
         Mockito.when(model.generate(sysMessage, dto.getPrompt()))
                 .thenReturn("[{\"pii\":\"Example Name\",\"type\":\"name\"}]");
         Mockito.doNothing().when(piiRepo).persist(mockPii);
+        Mockito.when(piiRevisionService.LLMPromptRevision(Mockito.anyString(), Mockito.anyList())).thenReturn("[]");
+        Mockito.when(piiRevisionService.piiReview(Mockito.anyList()))
+                .thenReturn(List.of(prompt.overshadowing.model.Prompt.create("My name is {name_1_" + id)));
         String expected = "My name is {name_1_";
         // Act
         ResponseDTO response = (ResponseDTO) this.ctrl.obfuscation(dto).getEntity();
@@ -87,6 +92,9 @@ public class ObfuscationControllerTest {
         String sysMessage = generatePromptTemplate(dto.getKeywords());
         Mockito.when(model.generate(sysMessage, dto.getPrompt()))
                 .thenReturn("[]");
+        Mockito.when(piiRevisionService.LLMPromptRevision(Mockito.anyString(), Mockito.anyList())).thenReturn("[]");
+        Mockito.when(piiRevisionService.piiReview(Mockito.anyList()))
+                .thenReturn(List.of(prompt.overshadowing.model.Prompt.create("My name is Example Name")));
         Pii mockPii = new Pii(); // create a mock Pii object
         Mockito.doNothing().when(piiRepo).persist(mockPii);
         String expected = "My name is Example Name";
