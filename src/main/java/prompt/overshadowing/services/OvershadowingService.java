@@ -169,8 +169,10 @@ public class OvershadowingService implements IOvershadowingService {
             }catch (Exception ignored) {}
         }
         if(p != null) {
-            prompt.addPiiToList(p);
-            prompt.replaceStringOnPrompt(p.getId(), p.getContent());
+            try {
+                prompt.addPiiToList(p);
+                prompt.replaceStringOnPrompt(p.getId(), p.getContent());
+            }catch (IllegalArgumentException ignored) {}
         }
     }
 

@@ -4,6 +4,7 @@ import lombok.Getter;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -51,7 +52,9 @@ public class Prompt {
      * Add the PII to the prompt list
      * @param pii the PII to be added
      */
-    public void addPiiToList(Pii pii) {
+    public void addPiiToList(Pii pii) throws IllegalArgumentException {
+        if(pii == null)
+            throw new IllegalArgumentException("The pii added to the prompt cannot be null");
         this.piis.add(pii);
     }
 
@@ -68,6 +71,9 @@ public class Prompt {
     }
 
     public void addPiisToList(List<Pii> pii) {
-        this.piis.addAll(pii);
-    }
+        if (pii != null) {
+            pii.stream()
+                    .filter(Objects::nonNull)
+                    .forEach(this.piis::add);
+        }    }
 }
