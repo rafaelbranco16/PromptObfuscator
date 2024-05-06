@@ -3,6 +3,10 @@ package prompt.overshadowing.model;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import lombok.Getter;
+import prompt.overshadowing.exceptions.InvalidPIIException;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Entity
 @Getter
@@ -36,7 +40,23 @@ public class Pii {
      * @param content the content
      * @return a new PII
      */
-    public static Pii create(String id, String content) {
+    public static Pii create(String id, String content) throws InvalidPIIException {
+        if(id == null || id.isEmpty() || id.isBlank()) {
+            throw new InvalidPIIException("The id, " + id + ", is invalid.");
+        }
+
+        if(content == null || content.isEmpty() || content.isBlank()) {
+            throw new InvalidPIIException("The content, " + content + ", is invalid.");
+        }
+        Pattern pattern = Pattern
+                .compile("(?<=\\{)[^{}]*(?=\\})");
+        Matcher matcher = pattern.matcher(content);
+
+        if(matcher.find()) {
+            throw new InvalidPIIException("This PII has been obfuscated or is a wrong detection from " +
+                    "the revision and will not be created.");
+        }
+
         return new Pii(id, content);
     }
 

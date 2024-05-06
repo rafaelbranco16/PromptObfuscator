@@ -1,6 +1,11 @@
 package prompt.overshadowing.utils;
 
+import dev.langchain4j.model.input.Prompt;
+import dev.langchain4j.model.input.PromptTemplate;
+
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 public class Utils {
@@ -12,5 +17,12 @@ public class Utils {
             throw new RuntimeException(e);
         }
         return prop.getProperty(key);
+    }
+    public static String generatePromptTemplateAsString(Object variable, String variableDefinition,
+                                                        PromptTemplate template) {
+        Map<String, Object> variables = new HashMap<>();
+        variables.put(variableDefinition, variable);
+        Prompt prompt = template.apply(variables);
+        return prompt.text();
     }
 }

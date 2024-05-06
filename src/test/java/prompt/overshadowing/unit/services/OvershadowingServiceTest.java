@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import prompt.overshadowing.dto.DesovershadowRequestDTO;
 import prompt.overshadowing.dto.ResponseDTO;
+import prompt.overshadowing.exceptions.InvalidPIIException;
 import prompt.overshadowing.exceptions.LLMRequestException;
 import prompt.overshadowing.exceptions.OvershadowingIllegalArgumentException;
 import prompt.overshadowing.exceptions.OvershadowingJsonParseException;
@@ -15,6 +16,7 @@ import prompt.overshadowing.model.Pii;
 import prompt.overshadowing.model.Prompt;
 import prompt.overshadowing.repositories.PiiRepository;
 import prompt.overshadowing.services.OvershadowingService;
+import prompt.overshadowing.services.interfaces.IDeobfuscateService;
 import prompt.overshadowing.services.interfaces.ILlmModelService;
 
 import java.util.UUID;
@@ -29,6 +31,8 @@ public class OvershadowingServiceTest {
     PiiRepository repo;
     @InjectMock
     ILlmModelService llmService;
+    @Inject
+    IDeobfuscateService deobfuscateService;
 
     @Test
     public void overshadowWithValidPrompt() throws OvershadowingIllegalArgumentException,
@@ -127,7 +131,7 @@ public class OvershadowingServiceTest {
         Assertions.assertEquals(expected, actual.getPrompt());
     }
     @Test
-    public void validDeobfuscation() {
+    public void validDeobfuscation() throws InvalidPIIException {
         //Arrange
         String reqId = UUID.randomUUID().toString();
         DesovershadowRequestDTO dto = new DesovershadowRequestDTO("My name is {name_1_"+reqId+"}");
@@ -136,7 +140,7 @@ public class OvershadowingServiceTest {
         ResponseDTO expected = new ResponseDTO(reqId, 200, "My name is My name");
 
         //Act
-        ResponseDTO actual = this.service.deobfuscate(dto);
+        ResponseDTO actual = this.deobfuscateService.deobfuscate(dto);
         //Assert
         Assertions.assertEquals(expected.getCode(), actual.getCode());
         Assertions.assertEquals(expected.getPrompt(), actual.getPrompt());
@@ -152,7 +156,7 @@ public class OvershadowingServiceTest {
                 " does not exist.");
 
         //Act
-        ResponseDTO actual = this.service.deobfuscate(dto);
+        ResponseDTO actual = this.deobfuscateService.deobfuscate(dto);
         //Assert
         Assertions.assertEquals(expected.getCode(), actual.getCode());
         Assertions.assertEquals(expected.getPrompt(), actual.getPrompt());
@@ -166,7 +170,7 @@ public class OvershadowingServiceTest {
         ResponseDTO expected = new ResponseDTO(reqId, 200, "");
 
         //Act
-        ResponseDTO actual = this.service.deobfuscate(dto);
+        ResponseDTO actual = this.deobfuscateService.deobfuscate(dto);
         //Assert
         Assertions.assertEquals(expected.getCode(), actual.getCode());
         Assertions.assertEquals(expected.getPrompt(), actual.getPrompt());

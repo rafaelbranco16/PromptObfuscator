@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.splitter.DocumentSplitters;
@@ -14,8 +13,6 @@ import dev.langchain4j.model.input.PromptTemplate;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import opennlp.tools.parser.Cons;
-import org.apache.commons.math3.util.Pair;
 import org.eclipse.microprofile.faulttolerance.CircuitBreaker;
 import org.eclipse.microprofile.faulttolerance.exceptions.CircuitBreakerOpenException;
 import prompt.overshadowing.constants.Constants;
@@ -32,6 +29,7 @@ import prompt.overshadowing.model.Request;
 import prompt.overshadowing.repositories.PiiRepository;
 import prompt.overshadowing.services.interfaces.ILlmModelService;
 import prompt.overshadowing.services.interfaces.IOvershadowingService;
+import prompt.overshadowing.services.interfaces.IPIIRevisionService;
 import prompt.overshadowing.utils.Utils;
 
 import java.util.ArrayList;
@@ -45,6 +43,8 @@ public class OvershadowingService implements IOvershadowingService {
     PiiRepository piiRepo;
     @Inject
     ILlmModelService modelService;
+    @Inject
+    IPIIRevisionService piiRevisionService;
     /**
      * Empty constructor
      */
@@ -57,15 +57,11 @@ public class OvershadowingService implements IOvershadowingService {
      */
     public ResponseDTO overshadowPrompt(ObfuscateRequestDTO dto) {
         ObfuscationRequest req = RequestFabric.create(dto.getPrompt(), dto.getKeywords());
-        // This is the list that will be going to be filled with the obfuscated prompts
-        // It's a List because the document is going to be split into different parts
-        // So it's easier for the LLM to detect the PIIs in smaller parts
         List<Prompt> prompts = new ArrayList<>();
         String overshadowed;
         try {
-            List<TextSegment> segments = this.splitPrompt(req.getPrompt().getPrompt()).getKey();
+            List<TextSegment> segments = this.splitPrompt(req.getPrompt().getPrompt());
             for(TextSegment segment : segments) {
-                // First passage on the LLM
                 String llmMessage = this.getLlmResponse(segment.text(), req.getKeywords());
                 ObfuscationRequest r = RequestFabric.create(segment.text(), req.getKeywords());
 
@@ -74,7 +70,7 @@ public class OvershadowingService implements IOvershadowingService {
                 Prompt p = overshadow(llmMessage, r.getPrompt().getPrompt(), r.getId().getId());
 
                 // LLM Revision
-                String llmRevision = LLMPromptRevision(p.getPrompt(), req.getKeywords());
+                String llmRevision = this.piiRevisionService.LLMPromptRevision(p.getPrompt(), req.getKeywords());
                 ObfuscationRequest r2 = RequestFabric.create(segment.text(), req.getKeywords());
                 if (llmRevision == null)
                     return new ResponseDTO(r.getId().getId(), 400, "Invalid response from Llm.");
@@ -82,7 +78,7 @@ public class OvershadowingService implements IOvershadowingService {
                 p.addPiisToList(p2.getPiis());
                 prompts.add(p);
             }
-            List<Prompt> reviewedPrompts = piiReview(prompts);
+            List<Prompt> reviewedPrompts = this.piiRevisionService.piiReview(prompts);
             overshadowed = connectPrompt(reviewedPrompts);
         }catch (OvershadowingIllegalArgumentException
                 | OvershadowingJsonParseException
@@ -108,23 +104,7 @@ public class OvershadowingService implements IOvershadowingService {
 
             return this.modelService.generate(prompt, p);
         }catch (RuntimeException e) {
-            throw new LLMRequestException(e.getMessage());
-        }
-    }
-
-    /**
-     * Asks the LLM the prompt
-     *
-     * @return the content from LLM Response
-     */
-    @CircuitBreaker(requestVolumeThreshold = 4, failureRatio = 0.75, delay = 5000)
-    public String LLMPromptRevision(String p, List<String> keywords) throws LLMRequestException {
-        try {
-            String prompt = generatePromptTemplate(keywords, Constants.llmPromptRevisionTemplate);
-
-            return this.modelService.generate(prompt, p);
-        }catch (RuntimeException e) {
-            throw new LLMRequestException(e.getMessage());
+            throw new LLMRequestException("We couldnt reach the LM. Try again in 5 minutes.");
         }
     }
 
@@ -182,13 +162,16 @@ public class OvershadowingService implements IOvershadowingService {
         }
         String stringToReplaceWith = "{" + type + "_" + typeNumber + "_" + requestId + "}";
         Pii p = piiRepo.findByContent(value);
-
         if (p == null){
-            p = PiiFabric.create(stringToReplaceWith, value);
-            piiRepo.persist(p);
+            try {
+                p = PiiFabric.create(stringToReplaceWith, value);
+                piiRepo.persist(p);
+            }catch (Exception ignored) {}
         }
-        prompt.addPiiToList(p);
-        prompt.replaceStringOnPrompt(p.getId(), p.getContent());
+        if(p != null) {
+            prompt.addPiiToList(p);
+            prompt.replaceStringOnPrompt(p.getId(), p.getContent());
+        }
     }
 
     /**
@@ -234,7 +217,7 @@ public class OvershadowingService implements IOvershadowingService {
      * @return a List of TextSegments
      * @throws InvalidSplitException if something's wrong happens
      */
-    public Pair<List<TextSegment>, List<TextSegment>> splitPrompt(String doc) throws InvalidSplitException{
+    public List<TextSegment> splitPrompt(String doc) throws InvalidSplitException{
         Document docObj;
         try {
             docObj = new Document(doc);
@@ -244,33 +227,26 @@ public class OvershadowingService implements IOvershadowingService {
         int maxSegmentSize, maxOverlapSize;
 
         try {
-            maxSegmentSize = Integer.parseInt(Utils.getProperty("max.segment.size"));
-        }catch (NumberFormatException e) {
-            throw new InvalidSplitException("The max segment size must be an integer");
-        }
-
-        try {
-            maxOverlapSize = Integer.parseInt(Utils.getProperty("max.overlap.size"));
+            maxOverlapSize = Integer.parseInt(Utils.getProperty("max.segment.size"));
         }catch (NumberFormatException e) {
             throw new InvalidSplitException("The max overlap size must be an integer");
         }
+
+        try {
+            maxSegmentSize = Integer.parseInt(Utils.getProperty("max.overlap.size"));
+        }catch (NumberFormatException e) {
+            throw new InvalidSplitException("The max overlap size must be an integer");
+        }
+
         try{
             DocumentSplitter splitter = DocumentSplitters
                     .recursive(
-                            maxSegmentSize,
                             maxOverlapSize,
-                            new HuggingFaceTokenizer()
-                    );
-            List<TextSegment> segmentsWithOverlap = splitter.split(docObj);
-            DocumentSplitter splitterWithoutOverlap = DocumentSplitters
-                    .recursive(
                             maxSegmentSize,
-                            0,
                             new HuggingFaceTokenizer()
                     );
-            List<TextSegment> segmentsWithoutOverlap = splitterWithoutOverlap.split(docObj);
 
-            return new Pair<>(segmentsWithOverlap, segmentsWithoutOverlap);
+            return splitter.split(docObj);
         }catch (Exception e) {
             throw new InvalidSplitException(e.getMessage());
         }
@@ -288,28 +264,5 @@ public class OvershadowingService implements IOvershadowingService {
         }
 
         return s;
-    }
-
-    /**
-     * This function will review if all the PIIs were obfuscated
-     * Sometime a given PII is seen as PII by the LLM and others not
-     * To overcome that problem it was thought tha it could be important
-     * to retrieve all the PIIs from every prompt and review the whole document
-     * @param prompts the prompts
-     * @return the list with all the prompts reviewed
-     */
-    private List<Prompt> piiReview(List<Prompt> prompts) {
-        List<Pii> piis = new ArrayList<>();
-        for(Prompt prompt: prompts) {
-            piis.addAll(prompt.getPiis());
-        }
-
-        for(Prompt prompt: prompts) {
-            for(Pii p: piis) {
-                prompt.replaceStringOnPrompt(p.getId(), p.getContent());
-            }
-        }
-
-        return prompts;
     }
 }
