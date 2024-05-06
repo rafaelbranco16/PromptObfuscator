@@ -57,6 +57,11 @@ public class Pii {
                     "the revision and will not be created.");
         }
 
+        Matcher idMatcher = pattern.matcher(id);
+
+        if(!idMatcher.find()) {
+            throw new InvalidPIIException("The id " + id + ", is invalid.");
+        }
         return new Pii(id, content);
     }
 

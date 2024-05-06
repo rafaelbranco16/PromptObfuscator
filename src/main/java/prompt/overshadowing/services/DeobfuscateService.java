@@ -29,8 +29,12 @@ public class DeobfuscateService implements IDeobfuscateService {
         for(String s : piis) {
             Pii pii = this.piiRepo.findById("{" + s + "}");
             if (pii != null) {
-                prompt.addPiiToList(pii);
-                prompt.replaceStringOnPrompt(pii.getContent(), "{" + s + "}");
+                try {
+                    prompt.addPiiToList(pii);
+                    prompt.replaceStringOnPrompt(pii.getContent(), "{" + s + "}");
+                }catch (Exception e) {
+                    return new ResponseDTO(req.getId().getId(), 400, e.getMessage());
+                }
             }else{
                 return new ResponseDTO(req.getId().getId(), 404, "This parameter " + s + " does not " +
                         "exist.");
