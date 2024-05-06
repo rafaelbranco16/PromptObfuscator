@@ -10,5 +10,4 @@ import java.util.List;
 public interface IOvershadowingService {
     ResponseDTO overshadowPrompt(ObfuscateRequestDTO dto);
     String getLlmResponse(String p, List<String> keywords) throws LLMRequestException;
-    ResponseDTO deobfuscate(DesovershadowRequestDTO dto);
 }

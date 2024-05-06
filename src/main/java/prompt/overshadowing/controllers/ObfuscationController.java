@@ -10,6 +10,7 @@ import jakarta.ws.rs.core.Response;
 import prompt.overshadowing.dto.DesovershadowRequestDTO;
 import prompt.overshadowing.dto.ObfuscateRequestDTO;
 import prompt.overshadowing.dto.ResponseDTO;
+import prompt.overshadowing.services.interfaces.IDeobfuscateService;
 import prompt.overshadowing.services.interfaces.IOvershadowingService;
 
 @Path("/overshadowing")
@@ -18,19 +19,21 @@ public class ObfuscationController {
      *  The service that obfuscates the prompt
      */
     @Inject
-    IOvershadowingService service;
+    IOvershadowingService obfuscateService;
+    @Inject
+    IDeobfuscateService deobfuscateService;
     @POST
     @Path("/obfuscation")
     @Produces(MediaType.APPLICATION_JSON)
     public Response obfuscation(@Valid ObfuscateRequestDTO request) {
-        ResponseDTO dto = service.overshadowPrompt(request);
+        ResponseDTO dto = this.obfuscateService.overshadowPrompt(request);
         return Response.ok().entity(dto).build();
     }
     @POST
     @Path("/deobfuscation")
     @Produces(MediaType.APPLICATION_JSON)
     public Response deobfuscation(@Valid DesovershadowRequestDTO request) {
-        ResponseDTO dto = this.service.deobfuscate(request);
+        ResponseDTO dto = this.deobfuscateService.deobfuscate(request);
         return Response.status(dto.getCode()).entity(dto).build();
     }
 }
