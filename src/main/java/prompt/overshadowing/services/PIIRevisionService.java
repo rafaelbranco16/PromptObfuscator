@@ -50,7 +50,7 @@ public class PIIRevisionService implements IPIIRevisionService {
 
         for(Prompt prompt: prompts) {
             for(Pii p: piis) {
-                prompt.replaceStringOnPrompt(p.getId(), p.getContent());
+                prompt.replaceStringOnPrompt(p.getId(), p.getContent(), "", 0);
             }
         }
 

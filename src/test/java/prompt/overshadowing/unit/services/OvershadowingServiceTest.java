@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import prompt.overshadowing.dto.DesovershadowRequestDTO;
+import prompt.overshadowing.dto.ObfuscateRequestDTO;
 import prompt.overshadowing.dto.ResponseDTO;
 import prompt.overshadowing.exceptions.InvalidPIIException;
 import prompt.overshadowing.exceptions.LLMRequestException;
@@ -19,6 +20,7 @@ import prompt.overshadowing.services.OvershadowingService;
 import prompt.overshadowing.services.interfaces.IDeobfuscateService;
 import prompt.overshadowing.services.interfaces.ILlmModelService;
 
+import java.util.List;
 import java.util.UUID;
 @QuarkusTest
 public class OvershadowingServiceTest {
@@ -175,4 +177,20 @@ public class OvershadowingServiceTest {
         Assertions.assertEquals(expected.getCode(), actual.getCode());
         Assertions.assertEquals(expected.getPrompt(), actual.getPrompt());
     }
+    /*@Test
+    public void obfuscate() throws LLMRequestException {
+        String prompt = "My name is Rafael";
+        ObfuscateRequestDTO dto = new ObfuscateRequestDTO(prompt, List.of("name"));
+        Mockito.when(this.llmService.generate(Mockito.anyString(), Mockito.anyString()))
+                .thenReturn("[{\"pii\":\"Rafael\",\"type\":\"name\"}]");
+        Pii mockPii = new Pii(); // create a mock Pii object
+        Mockito.doNothing().when(repo).persist(mockPii);
+        String expectedString = "My name is {name_1_";
+        // Act
+        ResponseDTO response = this.service.obfuscate(dto);
+        String actual = response.getPrompt();
+
+        //Assert
+        Assertions.assertTrue(actual.contains(expectedString));
+    }*/
 }

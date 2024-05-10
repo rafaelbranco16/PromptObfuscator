@@ -13,6 +13,8 @@ import dev.langchain4j.model.input.PromptTemplate;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.math3.util.Pair;
 import org.eclipse.microprofile.faulttolerance.CircuitBreaker;
 import org.eclipse.microprofile.faulttolerance.exceptions.CircuitBreakerOpenException;
 import prompt.overshadowing.constants.Constants;
@@ -36,6 +38,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @ApplicationScoped
 public class OvershadowingService implements IOvershadowingService {
@@ -127,9 +131,10 @@ public class OvershadowingService implements IOvershadowingService {
                 true);
         try {
             JsonNode piiArray = mapper.readTree(llmResponse);
+            int lastPosIndex = 0;
             if(piiArray != null && piiArray.isArray()) {
                 for(JsonNode pii : piiArray) {
-                    replacePrompt(promptObj, pii, overshadowingKeys, requestId);
+                    lastPosIndex = replacePrompt(promptObj, pii, overshadowingKeys, requestId, lastPosIndex);
                 }
             }
             return promptObj;
@@ -147,10 +152,12 @@ public class OvershadowingService implements IOvershadowingService {
      * @param obfuscatedKeys a map of the type {String, Integer}
      */
     @Transactional
-    public void replacePrompt(Prompt prompt, JsonNode pii,
-                              Map<String, Integer> obfuscatedKeys, String requestId) {
+    public int replacePrompt(Prompt prompt, JsonNode pii,
+                              Map<String, Integer> obfuscatedKeys, String requestId,
+                              int lastPosIndex) {
         String value = pii.path("pii").asText().trim();
         String type = pii.path("type").asText().trim();
+        String fiveAfter = pii.path("5after").asText().trim();
 
 
         Integer typeNumber = obfuscatedKeys.get(type);
@@ -161,7 +168,7 @@ public class OvershadowingService implements IOvershadowingService {
             obfuscatedKeys.put(type, typeNumber);
         }
         if(type.trim().isBlank() || type.trim().isEmpty()){
-            return;
+            return lastPosIndex;
         }
         String stringToReplaceWith = "{" + type + "_" + typeNumber + "_" + requestId + "}";
         Pii p = piiRepo.findByContent(value);
@@ -174,9 +181,10 @@ public class OvershadowingService implements IOvershadowingService {
         if(p != null) {
             try {
                 prompt.addPiiToList(p);
-                prompt.replaceStringOnPrompt(p.getId(), p.getContent());
+                return prompt.replaceStringOnPrompt(p.getId(), p.getContent(), fiveAfter, lastPosIndex);
             }catch (IllegalArgumentException ignored) {}
         }
+        return lastPosIndex;
     }
 
     /**
@@ -204,7 +212,7 @@ public class OvershadowingService implements IOvershadowingService {
             Pii pii = this.piiRepo.findById("{" + s + "}");
             if (pii != null) {
                 prompt.addPiiToList(pii);
-                prompt.replaceStringOnPrompt(pii.getContent(), "{" + s + "}");
+                //prompt.replaceStringOnPrompt(pii.getContent(), "{" + s + "}");
             }else{
                 return new ResponseDTO(req.getId().getId(), 404, "This parameter " + s + " does not " +
                         "exist.");

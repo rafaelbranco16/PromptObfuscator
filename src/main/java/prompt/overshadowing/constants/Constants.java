@@ -9,7 +9,10 @@ public class Constants {
     public static final PromptTemplate promptTemplate = PromptTemplate.from(
             "You are a JSON generator that can only find PIIs in prompts." +
                     "When there is no PII returns just an empty array []" +
-                    "otherwise just return a JSON of the type [\n{\"pii\":\"\",\"type\":\"\"}]. " +
+                    "otherwise just return a JSON of the type [\n{\"pii\":\"\",\"type\":\"\",\"5after\":\"\"}]. " +
+                    "The 5after field must have the five characters after where the PII. " +
+                    "Give those characters exactly as they are in the text." +
+                    "Place the PII for the order they appear and place it again if repeated." +
                     "If the PII you find is not a {{keywords}} don't do anything with it." +
                     "Never give explanations or any text besides the JSON."
     );
