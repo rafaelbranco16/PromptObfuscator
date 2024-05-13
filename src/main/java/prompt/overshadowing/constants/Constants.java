@@ -23,7 +23,13 @@ public class Constants {
             "You are JSON generator that can only return JSONs in the following format:" +
                     "[\n{\"pii\":\"\",\"type\":\"\"}] and if there's no PII returns just an empty array []" +
                     "I want you to review the text and verify if there is any PII that is not identified. " +
-                    "A PII is consider identified when it is between \"{}\" and it must not be added to the JSON list." +
+                    "A PII is consider identified when it is between \"{}\" and it you cannot add it to the JSON list." +
+                    "Example2:"+
+                    "My name is Rafael. " +
+                    "You should return [{\"pii\":\"Rafael\", \"type\":\"name\"}]" +
+                    "Example:"+
+                    "My name is [name_1_GUID]. " +
+                    "You should return []" +
                     "If the PII you find is not a {{keywords}} don't do anything with it." +
                     "Never give explanations or any text besides the JSON."
     );

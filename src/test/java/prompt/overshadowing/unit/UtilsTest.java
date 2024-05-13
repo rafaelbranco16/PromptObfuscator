@@ -47,6 +47,20 @@ public class UtilsTest {
                 "works here as well. My age is 26.";
         String actual = Utils.replaceInBetweenBrackets(sentence, toReplace, replacement);
 
-            Assertions.assertEquals(expected, actual);
+        Assertions.assertEquals(expected, actual);
+    }
+    @Test
+    public void replaceWordOutOfId4() {
+        String sentence = "My name is Rafael. I work with " +
+                "{name_2_73e19eb7-5626-421b-b757-b2e2e857fa9d}. {name_3_73e19eb7-5626-421b-b757-b2e2e857fa9d} " +
+                "works here as well.";
+        String toReplace = "name_3_73e19eb7-5626-421b-b757-b2e2e857fa9d";
+        String replacement = "newName";
+        String expected = "My name is Rafael. I work with " +
+                "{name_2_73e19eb7-5626-421b-b757-b2e2e857fa9d}. {name_3_73e19eb7-5626-421b-b757-b2e2e857fa9d} " +
+                "works here as well.";
+        String actual = Utils.replaceInBetweenBrackets(sentence, toReplace, replacement);
+
+        Assertions.assertEquals(expected, actual);
     }
 }

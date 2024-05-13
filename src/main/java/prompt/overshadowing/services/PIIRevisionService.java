@@ -37,7 +37,7 @@ public class PIIRevisionService implements IPIIRevisionService {
     /**
      * This function will review if all the PIIs were obfuscated
      * Sometime a given PII is seen as PII by the LLM and others not
-     * To overcome that problem it was thought tha it could be important
+     * To overcome that problem it was thought that it could be important
      * to retrieve all the PIIs from every prompt and review the whole document
      * @param prompts the prompts
      * @return the list with all the prompts reviewed
@@ -50,7 +50,11 @@ public class PIIRevisionService implements IPIIRevisionService {
 
         for(Prompt prompt: prompts) {
             for(Pii p: piis) {
-                prompt.replaceStringOnPrompt(p.getId(), p.getContent(), "", 0);
+                try {
+                    Integer.parseInt(p.getContent());
+                }catch (NumberFormatException e) {
+                    //prompt = prompt.getPrompt().replace(p.getId(), p.getContent());
+                }
             }
         }
 

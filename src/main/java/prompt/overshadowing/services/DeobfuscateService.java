@@ -26,13 +26,12 @@ public class DeobfuscateService implements IDeobfuscateService {
         Request req = RequestFabric.create(dto.getPrompt());
         List<String> piis = req.getPrompt().findPiiStrings();
         Prompt prompt =req.getPrompt();
-        int lastPosIndex = 0;
         for(String s : piis) {
             Pii pii = this.piiRepo.findById("{" + s + "}");
             if (pii != null) {
                 try {
                     prompt.addPiiToList(pii);
-                    prompt.replaceStringOnPrompt(pii.getContent(), "{" + s + "}", "", lastPosIndex);
+                    prompt.deobfuscatePrompt(pii, "{" + s + "}");
                 }catch (Exception e) {
                     return new ResponseDTO(req.getId().getId(), 400, e.getMessage());
                 }

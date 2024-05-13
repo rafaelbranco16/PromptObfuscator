@@ -60,18 +60,29 @@ public class Prompt {
         // The lastPosIndex represents where on the text we're replacing. It's like reading a book.
 
         String total = toReplace + fiveAfter;
-        String replacement = total.replace(toReplace, s);
+        String replacement = total.replaceFirst(toReplace, s);
         String prompt = this.prompt.substring(lastPosIndex);
         if(this.prompt.contains(total)) {
-            String promptReplace = prompt.replace(total, replacement);
-            this.prompt = this.prompt.replace(prompt, promptReplace);
+            String promptToReplace = Utils.replaceInBetweenBrackets(prompt, total, replacement);
+            this.prompt = this.prompt.replace(prompt, promptToReplace);
+            int pos = this.prompt.lastIndexOf(s);
+            return pos + s.length();
+        }else if(this.prompt.contains(toReplace)){
+            String betweenPIIAndFiveAfter = "";
+            try {
+                betweenPIIAndFiveAfter = prompt.substring(this.prompt.indexOf(toReplace),
+                        prompt.indexOf(fiveAfter) + fiveAfter.length());
+                replacement = betweenPIIAndFiveAfter.replaceFirst(toReplace, s);
+            }catch (StringIndexOutOfBoundsException e) {
+                betweenPIIAndFiveAfter = toReplace;
+                replacement = s;
+            }
+            String promptToReplace = Utils.replaceInBetweenBrackets(prompt, betweenPIIAndFiveAfter, replacement);
+            this.prompt = this.prompt.replace(prompt, promptToReplace);
             int pos = this.prompt.lastIndexOf(s);
             return pos + s.length();
         }else{
-            String promptReplace = prompt.replace(toReplace, s);
-            this.prompt = this.prompt.replace(prompt, promptReplace);
-            int pos = this.prompt.lastIndexOf(s);
-            return pos + s.length();
+            return lastPosIndex;
         }
     }
 
@@ -97,10 +108,24 @@ public class Prompt {
         return matches;
     }
 
+    /**
+     * Add the not null PIIs to the list of PIIs
+     * @param pii the list of PIIs
+     */
     public void addPiisToList(List<Pii> pii) {
         if (pii != null) {
             pii.stream()
                     .filter(Objects::nonNull)
                     .forEach(this.piis::add);
-        }    }
+        }
+    }
+
+    /**
+     * Just replace a String
+     * @param pii the PII to be replaced
+     * @param toReplace what is going to be replaced
+     */
+    public void deobfuscatePrompt(Pii pii, String toReplace) {
+        this.prompt = this.prompt.replace(toReplace, pii.getContent());
+    }
 }

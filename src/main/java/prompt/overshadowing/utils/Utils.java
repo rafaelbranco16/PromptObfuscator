@@ -2,11 +2,10 @@ package prompt.overshadowing.utils;
 
 import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -36,7 +35,33 @@ public class Utils {
      * @return the string obfuscated
      */
     public static String replaceInBetweenBrackets(String sentence, String toReplace, String replacement) {
-        String s = sentence;
+        if(sentence.contains(toReplace)) {
+            Map<Integer, Integer> map = new HashMap<>();
+            Pattern pattern = Pattern.compile("\\{\\w{1,}_\\d{1,}_\\w{8}-\\w{4}-\\w{4}-\\w{4}-\\w{12}\\}");
+            Matcher matcher = pattern.matcher(sentence);
+            while(matcher.find()) {
+                map.put(sentence.indexOf(matcher.group()), matcher.group().length());
+            }
+            int index = 0;
+            int index2 = 0;
+            int index1;
+            while (index >= 0) {
+                index = sentence.indexOf(toReplace, index+1);
+                boolean doChange = true;
+                for(Map.Entry<Integer, Integer> entry : map.entrySet()) {
+                    index1 = entry.getKey();
+                    index2 = entry.getKey() + entry.getValue();
+                    if(index1 < index && index2 > index) doChange = false;
+                }
+                if(doChange && index >= 0) {
+                    return sentence.substring(0, index) + replacement +
+                            sentence.substring(index+toReplace.length());
+                }
+            }
+        }
+        return sentence;
+
+        /*String s = sentence;
         while(s.contains(toReplace)) {
             int index = s.indexOf(toReplace);
             Pattern pattern = Pattern.compile("\\{\\w{1,}_\\d{1,}_\\w{8}-\\w{4}-\\w{4}-\\w{4}-\\w{12}\\}");
@@ -48,14 +73,14 @@ public class Utils {
                 int index2 = index1 + s1.length();
                 if(index > index1 && index < index2) s = s.substring(index2);
                 else {
-                    String s2 = s.replace(toReplace, replacement);
+                    String s2 = s.replaceFirst(toReplace, replacement);
                     return sentence.replace(s, s2);
                 }
             }else{
-                String s2 = s.replace(toReplace, replacement);
+                String s2 = s.replaceFirst(toReplace, replacement);
                 return sentence.replace(s, s2);
             }
         }
-        return sentence;
+        return sentence;*/
     }
 }

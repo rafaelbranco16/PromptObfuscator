@@ -1,5 +1,6 @@
 package prompt.overshadowing.unit.services;
 
+import dev.langchain4j.data.segment.TextSegment;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
@@ -20,6 +21,7 @@ import prompt.overshadowing.services.OvershadowingService;
 import prompt.overshadowing.services.interfaces.IDeobfuscateService;
 import prompt.overshadowing.services.interfaces.ILlmModelService;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 @QuarkusTest
@@ -118,12 +120,61 @@ public class OvershadowingServiceTest {
                 "have no problem in working with Segunda Pessoa";
         String llmResponse = "[" +
                                 "{\"pii\":\"O meu nome\", \"type\":\"Name\"},"+
-                                "{\"pii\":\"21\", \"type\":\"Age\"},"+
+                                "{\"pii\":\"21\", \"type\":\"Age\", \"5after\":\" years\"},"+
+                                "{\"pii\":\"Segunda Pessoa\", \"type\":\"Name\"}," +
+                                "{\"pii\":\"O meu nome\", \"type\":\"Name\"}," +
                                 "{\"pii\":\"Segunda Pessoa\", \"type\":\"Name\"}" +
                             "]";
         String expected = "My name is {Name_1_"+reqIdTemplate+"}. Im {Age_1_"+reqIdTemplate+"} years. " +
-                "I work with {Name_2_"+reqIdTemplate+"}. Me, {Name_1_"+reqIdTemplate+"} " +
-                "have no problem in working with {Name_2_"+reqIdTemplate+"}";
+                "I work with {Name_2_"+reqIdTemplate+"}. Me, {Name_3_"+reqIdTemplate+"} " +
+                "have no problem in working with {Name_4_"+reqIdTemplate+"}";
+        Pii mockPii = new Pii(); // create a mock Pii object
+        Mockito.doNothing().when(repo).persist(mockPii);
+        // Act
+        Prompt actual = service.overshadow(llmResponse, promptWithRepeatedPii, reqIdTemplate);
+        // Assert
+        Assertions.assertDoesNotThrow(() -> service.overshadow(llmResponse, promptWithRepeatedPii, reqIdTemplate));
+        Assertions.assertEquals(expected, actual.getPrompt());
+    }
+
+    @Test
+    public void overshadowingWith5AfterWithRightCharsAtWrongPositions() throws OvershadowingIllegalArgumentException,
+            OvershadowingJsonParseException {
+        String promptWithRepeatedPii = "My name is O meu nome. Im 21 years. I work with Segunda Pessoa. Me, O meu nome " +
+                "have no problem in working with Segunda Pessoa";
+        String llmResponse = "[" +
+                "{\"pii\":\"O meu nome\", \"type\":\"Name\"},"+
+                "{\"pii\":\"21\", \"type\":\"Age\", \"5after\":\"years\"},"+
+                "{\"pii\":\"Segunda Pessoa\", \"type\":\"Name\"}," +
+                "{\"pii\":\"O meu nome\", \"type\":\"Name\"}," +
+                "{\"pii\":\"Segunda Pessoa\", \"type\":\"Name\"}" +
+                "]";
+        String expected = "My name is {Name_1_"+reqIdTemplate+"}. Im {Age_1_"+reqIdTemplate+"} years. " +
+                "I work with {Name_2_"+reqIdTemplate+"}. Me, {Name_3_"+reqIdTemplate+"} " +
+                "have no problem in working with {Name_4_"+reqIdTemplate+"}";
+        Pii mockPii = new Pii(); // create a mock Pii object
+        Mockito.doNothing().when(repo).persist(mockPii);
+        // Act
+        Prompt actual = service.overshadow(llmResponse, promptWithRepeatedPii, reqIdTemplate);
+        // Assert
+        Assertions.assertDoesNotThrow(() -> service.overshadow(llmResponse, promptWithRepeatedPii, reqIdTemplate));
+        Assertions.assertEquals(expected, actual.getPrompt());
+    }
+    @Test
+    public void overshadowingWith5AfterWithWrong5After() throws OvershadowingIllegalArgumentException,
+            OvershadowingJsonParseException {
+        String promptWithRepeatedPii = "My name is O meu nome. Im 21 years. I work with Segunda Pessoa. Me, O meu nome " +
+                "have no problem in working with Segunda Pessoa";
+        String llmResponse = "[" +
+                "{\"pii\":\"O meu nome\", \"type\":\"Name\"},"+
+                "{\"pii\":\"21\", \"type\":\"Age\", \"5after\":\"yeas\"},"+
+                "{\"pii\":\"Segunda Pessoa\", \"type\":\"Name\"}," +
+                "{\"pii\":\"O meu nome\", \"type\":\"Name\"}," +
+                "{\"pii\":\"Segunda Pessoa\", \"type\":\"Name\"}" +
+                "]";
+        String expected = "My name is {Name_1_"+reqIdTemplate+"}. Im {Age_1_"+reqIdTemplate+"} years. " +
+                "I work with {Name_2_"+reqIdTemplate+"}. Me, {Name_3_"+reqIdTemplate+"} " +
+                "have no problem in working with {Name_4_"+reqIdTemplate+"}";
         Pii mockPii = new Pii(); // create a mock Pii object
         Mockito.doNothing().when(repo).persist(mockPii);
         // Act

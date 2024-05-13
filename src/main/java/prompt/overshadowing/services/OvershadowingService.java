@@ -73,17 +73,10 @@ public class OvershadowingService implements IOvershadowingService {
                     return new ResponseDTO(r.getId().getId(), 400, "Invalid response from Llm.");
                 Prompt p = overshadow(llmMessage, r.getPrompt().getPrompt(), r.getId().getId());
 
-                // LLM Revision
-                String llmRevision = this.piiRevisionService.LLMPromptRevision(p.getPrompt(), req.getKeywords());
-                ObfuscationRequest r2 = RequestFabric.create(segment.text(), req.getKeywords());
-                if (llmRevision == null)
-                    return new ResponseDTO(r.getId().getId(), 400, "Invalid response from Llm.");
-                Prompt p2 = overshadow(llmRevision, r2.getPrompt().getPrompt(), r2.getId().getId());
-                p.addPiisToList(p2.getPiis());
-                prompts.add(p);
+                reviewPrompt(p, req.getKeywords(), prompts, segment);
             }
-            List<Prompt> reviewedPrompts = this.piiRevisionService.piiReview(prompts);
-            overshadowed = connectPrompt(reviewedPrompts);
+            //List<Prompt> reviewedPrompts = this.piiRevisionService.piiReview(prompts);
+            overshadowed = connectPrompt(prompts);
         }catch (OvershadowingIllegalArgumentException
                 | OvershadowingJsonParseException
                 | LLMRequestException
@@ -134,7 +127,7 @@ public class OvershadowingService implements IOvershadowingService {
             int lastPosIndex = 0;
             if(piiArray != null && piiArray.isArray()) {
                 for(JsonNode pii : piiArray) {
-                    lastPosIndex = replacePrompt(promptObj, pii, overshadowingKeys, requestId, lastPosIndex);
+                    lastPosIndex = this.replacePrompt(promptObj, pii, overshadowingKeys, requestId, lastPosIndex);
                 }
             }
             return promptObj;
@@ -200,28 +193,6 @@ public class OvershadowingService implements IOvershadowingService {
     }
 
     /**
-     * Deobfuscate a prompt
-     * @param dto the dto with the request
-     * @return the deobfuscated prompt
-     */
-    public ResponseDTO deobfuscate(DesovershadowRequestDTO dto) {
-        Request req = RequestFabric.create(dto.getPrompt());
-        List<String> piis = req.getPrompt().findPiiStrings();
-        Prompt prompt =req.getPrompt();
-        for(String s : piis) {
-            Pii pii = this.piiRepo.findById("{" + s + "}");
-            if (pii != null) {
-                prompt.addPiiToList(pii);
-                //prompt.replaceStringOnPrompt(pii.getContent(), "{" + s + "}");
-            }else{
-                return new ResponseDTO(req.getId().getId(), 404, "This parameter " + s + " does not " +
-                        "exist.");
-            }
-        }
-        return new ResponseDTO(req.getId().getId(), 200, prompt.getPrompt());
-    }
-
-    /**
      * Splits the prompt into text segments
      * @param doc the document to be created. This is not a literal document.
      *            It can be a String. It has to be turned into a Document class,
@@ -277,5 +248,26 @@ public class OvershadowingService implements IOvershadowingService {
         }
 
         return s;
+    }
+
+    /**
+     * Asks the Review Service to review the desired prompt
+     * @param prompt the prompt to be reviewed
+     * @param keywords the keywords
+     * @param prompts the list with all the prompts
+     * @param segment the segment of text to be analised
+     * @throws LLMRequestException if something's wrong connecting to the LLM
+     * @throws OvershadowingIllegalArgumentException if occurs any problem while obfuscating
+     * @throws OvershadowingJsonParseException if there's any problem in the JSON returned by the LLM
+     */
+    public void reviewPrompt(Prompt prompt, List<String> keywords, List<Prompt> prompts, TextSegment segment)
+            throws LLMRequestException, OvershadowingIllegalArgumentException, OvershadowingJsonParseException {
+        String llmRevision = this.piiRevisionService.LLMPromptRevision(prompt.getPrompt(), keywords);
+        ObfuscationRequest r2 = RequestFabric.create(segment.text(), keywords);
+        if (llmRevision == null)
+            throw new LLMRequestException("Got no response from the LLM while reviewing");
+        Prompt p2 = overshadow(llmRevision, prompt.getPrompt(), r2.getId().getId());
+        prompt.addPiisToList(p2.getPiis());
+        prompts.add(p2);
     }
 }
