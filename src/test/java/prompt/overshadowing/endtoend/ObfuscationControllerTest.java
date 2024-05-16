@@ -24,7 +24,7 @@ import static org.hamcrest.Matchers.matchesRegex;
 @Disabled
 @QuarkusTest
 public class ObfuscationControllerTest {
-    @Test
+    /*@Test
     public void testOvershadowingEndpoint() {
         ObfuscateRequestDTO dto = new ObfuscateRequestDTO("prompt",
                 List.of("name"));
@@ -219,5 +219,5 @@ public class ObfuscationControllerTest {
                 .response();
         System.out.println(response.jsonPath().getString("prompt"));
         Assertions.assertEquals(promptText, response.jsonPath().getString("prompt"));
-    }
+    }*/
 }

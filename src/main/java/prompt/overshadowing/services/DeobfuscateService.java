@@ -27,16 +27,17 @@ public class DeobfuscateService implements IDeobfuscateService {
         List<String> piis = req.getPrompt().findPiiStrings();
         Prompt prompt =req.getPrompt();
         for(String s : piis) {
-            Pii pii = this.piiRepo.findById("{" + s + "}");
+            String id = "{" + s + "}";
+            Pii pii = this.piiRepo.findById(id);
             if (pii != null) {
                 try {
                     prompt.addPiiToList(pii);
-                    prompt.deobfuscatePrompt(pii, "{" + s + "}");
+                    prompt.deobfuscatePrompt(pii, id);
                 }catch (Exception e) {
                     return new ResponseDTO(req.getId().getId(), 400, e.getMessage());
                 }
             }else{
-                return new ResponseDTO(req.getId().getId(), 404, "This parameter " + s + " does not " +
+                return new ResponseDTO(req.getId().getId(), 404, "This parameter " + id + " does not " +
                         "exist.");
             }
         }

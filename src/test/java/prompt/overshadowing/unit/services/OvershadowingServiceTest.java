@@ -205,8 +205,8 @@ public class OvershadowingServiceTest {
         DesovershadowRequestDTO dto = new DesovershadowRequestDTO("My name is {name_1_"+reqId+"}");
         Mockito.when(repo.findById("{name_1_"+reqId+"}"))
                 .thenReturn(null);
-        ResponseDTO expected = new ResponseDTO(reqId, 404, "This parameter " + "name_1_"+reqId+
-                " does not exist.");
+        ResponseDTO expected = new ResponseDTO(reqId, 404, "This parameter " + "{name_1_"+reqId+
+                "} does not exist.");
 
         //Act
         ResponseDTO actual = this.deobfuscateService.deobfuscate(dto);

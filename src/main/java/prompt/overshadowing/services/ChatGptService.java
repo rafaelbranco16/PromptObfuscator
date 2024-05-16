@@ -20,6 +20,7 @@ import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
+import java.util.logging.Logger;
 
 @ApplicationScoped
 public class ChatGptService implements ILlmModelService {
@@ -55,10 +56,12 @@ public class ChatGptService implements ILlmModelService {
     String modelName;
 
     ChatLanguageModel languageModel;
+    Logger logger = Logger.getLogger(ChatGptService.class.getName());
 
     public ChatGptService() {}
 
-    public ChatGptService(ChatLanguageModel languageModel) {
+    public ChatGptService(ChatLanguageModel languageModel) throws LLMRequestException {
+        if(languageModel == null) throw new LLMRequestException("The selected model is null");
         this.languageModel = languageModel;
     }
 
@@ -109,7 +112,11 @@ public class ChatGptService implements ILlmModelService {
     }
 
     @Override
-    public void changeModel(ChatLanguageModel model) throws LLMRequestException {
+    public void changeModel(ChatLanguageModel model) {
+        if(model == null) {
+            logger.info("The model received is null, so the last one is going to be keep.");
+            return;
+        }
         this.languageModel = model;
     }
 

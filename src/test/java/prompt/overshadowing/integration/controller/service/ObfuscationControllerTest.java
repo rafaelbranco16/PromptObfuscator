@@ -56,9 +56,13 @@ public class ObfuscationControllerTest {
         Mockito.when(piiRevisionService.LLMPromptRevision(Mockito.anyString(), Mockito.anyList())).thenReturn("[]");
         Mockito.when(piiRevisionService.piiReview(Mockito.anyList()))
                 .thenReturn(List.of(prompt.overshadowing.model.Prompt.create("My name is {name_1_" + id)));
+        Mockito.when(piiRevisionService.needsHigherRevision(Mockito.any(), Mockito.anyList())).thenReturn(true);
+        Mockito.when(piiRevisionService.LLMPromptRevision(Mockito.anyString(), Mockito.anyList()))
+                .thenReturn("[]");
         String expected = "My name is {name_1_";
         // Act
         ResponseDTO response = (ResponseDTO) this.ctrl.obfuscation(dto).getEntity();
+
         // Assert
         Assertions.assertTrue(response.getPrompt().contains(expected));
     }
@@ -98,6 +102,9 @@ public class ObfuscationControllerTest {
         Pii mockPii = new Pii(); // create a mock Pii object
         Mockito.doNothing().when(piiRepo).persist(mockPii);
         String expected = "My name is Example Name";
+        Mockito.when(piiRevisionService.needsHigherRevision(Mockito.any(), Mockito.anyList())).thenReturn(true);
+        Mockito.when(piiRevisionService.LLMPromptRevision(Mockito.anyString(), Mockito.anyList()))
+                .thenReturn("[]");
         // Act
         ResponseDTO response = (ResponseDTO) this.ctrl.obfuscation(dto).getEntity();
         // Assert
