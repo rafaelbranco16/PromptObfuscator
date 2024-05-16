@@ -4,6 +4,7 @@ import dev.langchain4j.model.chat.ChatLanguageModel;
 import prompt.overshadowing.exceptions.LLMRequestException;
 
 public interface ILlmModelService {
-    ChatLanguageModel buildModel();
+    ChatLanguageModel buildBaseModel();
     String generate(String sysMessage, String userMessage) throws LLMRequestException;
+    void changeModel(ChatLanguageModel model) throws LLMRequestException;
 }

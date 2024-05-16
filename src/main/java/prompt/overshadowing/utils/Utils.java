@@ -60,27 +60,8 @@ public class Utils {
             }
         }
         return sentence;
-
-        /*String s = sentence;
-        while(s.contains(toReplace)) {
-            int index = s.indexOf(toReplace);
-            Pattern pattern = Pattern.compile("\\{\\w{1,}_\\d{1,}_\\w{8}-\\w{4}-\\w{4}-\\w{4}-\\w{12}\\}");
-            Matcher matcher = pattern.matcher(s);
-
-            if (matcher.find()) {
-                String s1 = matcher.group();
-                int index1 = s.indexOf(s1);
-                int index2 = index1 + s1.length();
-                if(index > index1 && index < index2) s = s.substring(index2);
-                else {
-                    String s2 = s.replaceFirst(toReplace, replacement);
-                    return sentence.replace(s, s2);
-                }
-            }else{
-                String s2 = s.replaceFirst(toReplace, replacement);
-                return sentence.replace(s, s2);
-            }
-        }
-        return sentence;*/
+    }
+    public static Prompt generatePromptFromTemplate(PromptTemplate template, Map<String, Object> variables) {
+        return template.apply(variables);
     }
 }

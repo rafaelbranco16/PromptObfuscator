@@ -31,6 +31,23 @@ public class Constants {
                     "My name is [name_1_GUID]. " +
                     "You should return []" +
                     "If the PII you find is not a {{keywords}} don't do anything with it." +
+                    "Place the PII for the order they appear and place it again if repeated." +
                     "Never give explanations or any text besides the JSON."
+    );
+
+    public static final PromptTemplate llmPromptRevisionAsking = PromptTemplate.from(
+      "You are a PII detector. There are two types of PIIs, the ones that were obfuscated " +
+              "and the ones that weren't. The obfuscated ones have this format: type_number_ID." +
+              "I want you to verify and tell me if there is any PII that haven't been obfuscated." +
+              "Example 1:" +
+              "I'm name_1_ID. I have 23 years old. " +
+              "Keywords: [name, age] " +
+              "Return: True " +
+              "Example 2: " +
+              "I'm name_1_ID. I have age_1_ID years old. " +
+              "Keywords: [name, age] " +
+              "Return: False. " +
+              "The keywords are: {keywords}." +
+              "Return only true or false. "
     );
 }

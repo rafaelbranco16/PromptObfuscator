@@ -8,4 +8,6 @@ import java.util.List;
 public interface IPIIRevisionService {
     String LLMPromptRevision(String p, List<String> keywords) throws LLMRequestException;
     List<Prompt> piiReview(List<Prompt> prompts);
+    boolean needsHigherRevision(Prompt prompt, List<String> keywords) throws LLMRequestException;
+    void changeToRevisionModel() throws LLMRequestException;
 }

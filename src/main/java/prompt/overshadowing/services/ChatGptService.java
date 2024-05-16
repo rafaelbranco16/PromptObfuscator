@@ -6,16 +6,16 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.output.Response;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import langfuse.sdk.model.*;
 import langfuse.sdk.service.LangFuseService;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import prompt.overshadowing.exceptions.LLMRequestException;
 import prompt.overshadowing.services.interfaces.ILLMLoggingService;
 import prompt.overshadowing.services.interfaces.ILlmModelService;
-import prompt.overshadowing.utils.Utils;
+
 import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
@@ -30,7 +30,7 @@ public class ChatGptService implements ILlmModelService {
     @Inject
     LangFuseService fuseService;
 
-    //LangFuse integration properties
+    //LangFuse integration properuildBaseModel();ties
     @ConfigProperty(name = "langfuse.public.key")
     String username;
     @ConfigProperty(name = "langfuse.secret.key")
@@ -54,8 +54,22 @@ public class ChatGptService implements ILlmModelService {
     @ConfigProperty(name = "model.name")
     String modelName;
 
+    ChatLanguageModel languageModel;
+
+    public ChatGptService() {}
+
+    public ChatGptService(ChatLanguageModel languageModel) {
+        this.languageModel = languageModel;
+    }
+
+    @PostConstruct
+    public void init() {
+        this.languageModel = buildBaseModel();
+    }
+
+
     @Override
-    public ChatLanguageModel buildModel() {
+    public ChatLanguageModel buildBaseModel() {
         if(Objects.equals(modelBaseUrl, "null")) modelBaseUrl = null;
         return OpenAiChatModel.builder()
                 .baseUrl(modelBaseUrl)
@@ -78,7 +92,7 @@ public class ChatGptService implements ILlmModelService {
     public String generate(String sysMessage, String userMessage) throws LLMRequestException {
         SystemMessage sysMessageObj = new SystemMessage(sysMessage);
         UserMessage userMessageObj = new UserMessage(userMessage);
-        Response<AiMessage> response = this.buildModel().generate(List.of(sysMessageObj, userMessageObj));
+        Response<AiMessage> response = this.languageModel.generate(List.of(sysMessageObj, userMessageObj));
 
         /*
         Batch trace = fuseService.createTrace(List.of(sysMessageObj, userMessageObj), response, "v1", "v1",
@@ -92,6 +106,11 @@ public class ChatGptService implements ILlmModelService {
         */
 
         return response.content().text();
+    }
+
+    @Override
+    public void changeModel(ChatLanguageModel model) throws LLMRequestException {
+        this.languageModel = model;
     }
 
     private String buildHeaderAuthorization() {

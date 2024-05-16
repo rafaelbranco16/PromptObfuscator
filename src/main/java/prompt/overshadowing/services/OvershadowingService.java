@@ -64,6 +64,7 @@ public class OvershadowingService implements IOvershadowingService {
         List<Prompt> prompts = new ArrayList<>();
         String overshadowed;
         try {
+            this.modelService.changeModel(this.modelService.buildBaseModel());
             List<TextSegment> segments = this.splitPrompt(req.getPrompt().getPrompt());
             for(TextSegment segment : segments) {
                 String llmMessage = this.getLlmResponse(segment.text(), req.getKeywords());
@@ -75,7 +76,6 @@ public class OvershadowingService implements IOvershadowingService {
 
                 reviewPrompt(p, req.getKeywords(), prompts, segment);
             }
-            //List<Prompt> reviewedPrompts = this.piiRevisionService.piiReview(prompts);
             overshadowed = connectPrompt(prompts);
         }catch (OvershadowingIllegalArgumentException
                 | OvershadowingJsonParseException
@@ -262,12 +262,16 @@ public class OvershadowingService implements IOvershadowingService {
      */
     public void reviewPrompt(Prompt prompt, List<String> keywords, List<Prompt> prompts, TextSegment segment)
             throws LLMRequestException, OvershadowingIllegalArgumentException, OvershadowingJsonParseException {
-        String llmRevision = this.piiRevisionService.LLMPromptRevision(prompt.getPrompt(), keywords);
-        ObfuscationRequest r2 = RequestFabric.create(segment.text(), keywords);
-        if (llmRevision == null)
-            throw new LLMRequestException("Got no response from the LLM while reviewing");
-        Prompt p2 = overshadow(llmRevision, prompt.getPrompt(), r2.getId().getId());
-        prompt.addPiisToList(p2.getPiis());
-        prompts.add(p2);
+        boolean needsHigherRevision = this.piiRevisionService.needsHigherRevision(prompt, keywords);
+        if(needsHigherRevision) {
+            this.piiRevisionService.changeToRevisionModel();
+            String llmRevision = this.piiRevisionService.LLMPromptRevision(prompt.getPrompt(), keywords);
+            ObfuscationRequest r2 = RequestFabric.create(segment.text(), keywords);
+            if (llmRevision == null)
+                throw new LLMRequestException("Got no response from the LLM while reviewing");
+            Prompt p2 = overshadow(llmRevision, prompt.getPrompt(), r2.getId().getId());
+            prompt.addPiisToList(p2.getPiis());
+            prompts.add(p2);
+        }
     }
 }
